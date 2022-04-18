@@ -57,8 +57,6 @@ HLSV2 = {
         "B06": "swir1",
         "B07": "swir2",
         "B09": "cirrus",
-        # "B10": "tir1",
-        # "B11": "tir2",
         "Fmask": "fmask",
     },
     "HLSS30.v2.0": {
@@ -66,12 +64,7 @@ HLSV2 = {
         "B02": "blue",
         "B03": "green",
         "B04": "red",
-        # "B05": "rededge1",
-        # "B06": "rededge2",
-        # "B07": "rededge3",
-        # "B08": "nirbroad",
         "B08A": "nir",
-        # "B09": "watervapor",
         "B10": "cirrus",
         "B11": "swir1",
         "B12": "swir2",
@@ -122,7 +115,8 @@ def construct_file_df(
     file_list = []
     for i in files:
         file_list.append(get_links(i, band_map))
-    return pd.concat(file_list)
+    href_df = pd.concat(file_list)
+    return href_df.sort_values(by=["date", "band"])
 
 
 def generate_cube(
@@ -144,9 +138,6 @@ def generate_cube(
             for d in dates
         ],
     )
-    # cube = xr.concat(
-    #    [band_stack(hrefs.loc[hrefs["date"] == d], geom) for d in dates], dim=time
-    # )
     return date_dict, imgs
 
 
@@ -159,8 +150,8 @@ def band_stack(
 ) -> xr.core.dataarray.DataArray:
     # dates_ind = sorted_enumerate(dates)
     # Standard xarray convention seems to name all time variables as time, even just dates
-    band = xr.Variable("band", list(href_df.cname))
     bands = list(href_df.cname)
+    band = xr.Variable("band", bands)
     sat = href_df["sat"].unique()[0]
     date = href_df["date"].unique()[0]
     print(f"{sat} {date}")
@@ -174,13 +165,10 @@ def band_stack(
         xr_bands,
         dim=band,
     )
-    xr_arr = xr_arr.assign_coords(band=bands)
-    xr_arr.set_index("band")
+    xr_arr.attrs["long_name"] = bands
     if cache is True:
         sat = href_df["sat"].unique()[0]
         out_path = cache_dir / f"{sat}_{date}.tif"
-        print(out_path)
-        print(xr_arr)
         xr_arr.rio.to_raster(out_path)
         return None
     return xr_arr
@@ -190,12 +178,11 @@ if __name__ == "__main__":
     url = "https://cmr.earthdata.nasa.gov/stac/"
     cat = Client.open(url)
     catalog = generate_client()
-    with open("./test_poly.geojson", "r") as fp:
+    with open("../test/data/test_poly.geojson", "r") as fp:
         region_model = json.load(fp)
         geom = region_model["features"][0]["geometry"]
 
     search = catalog.search(collections=list(HLSV2.keys()), intersects=geom)
-    print(search.matched())
 
     item_collection = search.get_all_items()
     files = list(item_collection)
@@ -203,13 +190,3 @@ if __name__ == "__main__":
     geom = gpd.read_file("./test_poly.geojson")
 
     test5 = generate_cube(hrefs, geom, cache_dir=Path("/SEAL/OwenSmith/hls_cube"))
-
-# red_xr = rioxarray.open_rasterio(hrefs.get("red"), masked=True, parse_coordinates=True)
-
-# clipped = red_xr.rio.clip(geoms, geom.crs)
-
-# clipped.squeeze("band").plot.imshow()
-# plt.show()
-# da = xr.open_dataarray(
-#    "nc", decode_coords="all"
-# )
