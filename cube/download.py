@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+    cube.download
+    ~~~~~~~~~~~~~
+
+    Methods for downloading from NASA Earthdata and generating tifs, netcdf,
+    and xarray data cubes.
+
+    :copyright: (c) 2022 by Owen Smith.
+    :license: GNU v3.0, see LICENSE for more details.
+"""
 
 
 # Standard library imports
@@ -34,6 +45,7 @@ except ImportError:
 ItemCollectionDict = Dict[str, Any]
 
 ######################################
+# Set up VSIcurl settings
 gdal.SetConfigOption("GDAL_HTTP_COOKIEFILE", "~/cookies.txt")
 gdal.SetConfigOption("GDAL_HTTP_COOKIEJAR", "~/cookies.txt")
 gdal.SetConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", "YES")
