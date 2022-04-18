@@ -54,7 +54,7 @@ gdal.SetConfigOption("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", "TIF")
 
 #####################################
 # Consts
-PROCESSES = mp.cpu_count() - 1
+PROCESSES = 4
 
 CATALOGS = ["LPCLOUD"]
 
@@ -84,7 +84,26 @@ HLSV2 = {
 }
 
 
-def inv_bandmap(band_map: Dict[str, str]):
+def inv_bandmap(band_map: Dict[str, str]) -> Dict[str, str]:
+    """Generate inverted band, common name dictonary
+
+    Parameters
+    ----------
+    band_map : dict
+        Band map for data product
+
+    Returns
+    -------
+    dict
+        Band map with inverted band name and common name key, value pair
+
+    Example
+    -------
+        bmap =  {"HLSS30.v2.0": {
+                "B01": "aerosal"}}
+        inv_bandmap(bmap)
+
+    """
     inv_dict = {}
     collections = list(band_map.keys())
     for c in collections:
@@ -95,12 +114,51 @@ def inv_bandmap(band_map: Dict[str, str]):
 def generate_client(
     catalog="LPCLOUD", url="https://cmr.earthdata.nasa.gov/stac/"
 ) -> Client:
+    """Connect to nasa stac
+
+    Parameters
+    ----------
+    catalog : str
+        Catalog to ingest from
+    url : str
+        STAC URL
+
+    Returns
+    -------
+    Client
+        STAC endpoint
+
+    Notes
+    -----
+        Simply a wrapper for Client.open.
+        TODO: Add checking and indexing of NASA cmr catalogs
+
+    """
     return Client.open(f"{url}/{catalog}")
 
 
 def get_links(asset, band_map: Dict[str, str]) -> pd.DataFrame:
+    """Generate data frame of hrefs and meta data for a scene
+
+    Parameters
+    ----------
+    asset : ?
+        Single asset catalog of band items
+    band_map: Dict[str, str]
+        Band map look up
+
+    Returns
+    -------
+    pandas.DataFrame
+        Pandas object which contains dates, collection, band, and href link
+
+    Notes
+    -----
+
+    Example
+    -------
+    """
     data_dict = []
-    # data_df = pd.DataFrame(columns=["date", "sat", "band", "href"])
     sat = asset.collection_id
     band_keys = list(band_map.get(sat).keys())
     date = asset.datetime.date()
@@ -123,6 +181,30 @@ def get_links(asset, band_map: Dict[str, str]) -> pd.DataFrame:
 def construct_file_df(
     files: ItemCollectionDict, band_map: Dict[str, str]
 ) -> pd.DataFrame:
+    """Construct dataframe for entire query
+
+    Parameters
+    ----------
+    files : ItemCollectionDict
+        ItemCollection search result
+    band_map: Dict[str, str]
+        Band map look up
+
+
+    Returns
+    -------
+    pandas.DataFrame
+        Pandas object which contains dates, collection, band, and href link
+        for each item in ItemCollection
+
+    Notes
+    -----
+        Different from get_links() in that this generates data frame entry
+        for each asset in each item in the ItemCollection
+
+    Example
+    -------
+    """
     file_list = []
     for i in files:
         file_list.append(get_links(i, band_map))
@@ -139,23 +221,17 @@ def generate_cube(
 ) -> xr.core.dataarray.DataArray:
     dates = hrefs["date"].unique()
     time = xr.Variable("time", dates)
-    manager = mp.Manager()
-    date_dict = manager.dict()
     pool = mp.Pool(processes)
     imgs = pool.starmap(
         band_stack,
-        [
-            (hrefs.loc[hrefs["date"] == d], geom, date_dict, cache, cache_dir)
-            for d in dates
-        ],
+        [(hrefs.loc[hrefs["date"] == d], geom, cache, cache_dir) for d in dates],
     )
-    return date_dict, imgs
+    return imgs
 
 
 def band_stack(
     href_df: pd.DataFrame,
     geoms: gpd.GeoDataFrame,
-    date_dict: Dict[int, datetime],
     cache=True,
     cache_dir: Union[Path, str] = Path("./"),
 ) -> xr.core.dataarray.DataArray:
@@ -165,7 +241,7 @@ def band_stack(
     band = xr.Variable("band", bands)
     sat = href_df["sat"].unique()[0]
     date = href_df["date"].unique()[0]
-    print(f"{sat} {date}")
+    print(f"{datetime.now()} {sat} {date}")
     xr_bands = [
         rioxarray.open_rasterio(f, masked=True).rio.clip(
             geoms.geometry.apply(mapping), geoms.crs
@@ -182,12 +258,11 @@ def band_stack(
         out_path = cache_dir / f"{sat}_{date}.tif"
         xr_arr.rio.to_raster(out_path)
         return None
-    return xr_arr
+    else:
+        return xr_arr
 
 
 if __name__ == "__main__":
-    url = "https://cmr.earthdata.nasa.gov/stac/"
-    cat = Client.open(url)
     catalog = generate_client()
     with open("../test/data/test_poly.geojson", "r") as fp:
         region_model = json.load(fp)
