@@ -1,7 +1,15 @@
+#!/usr/bin/env python3
+
+
+# Standard library imports
 import os
 import json
 from pathlib import Path
 from datetime import datetime
+import multiprocessing as mp
+from typing import Dict, Any, Union
+
+# Third party imports
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -12,23 +20,14 @@ import xarray as xr
 import rioxarray
 from shapely.geometry import mapping
 from pystac_client import Client, ItemSearch
-import multiprocessing as mp
-import multiprocessing
-
-# Linux/OSX:
-import multiprocessing.popen_spawn_posix
-
-# Windows:
-# import multiprocessing.popen_spawn_win32
-import threading
-
-from typing import Dict, Any, Union
 
 try:
     from rich import print
 except ImportError:
     pass
 
+# Local imports
+# ...
 
 ######################################
 # Types
