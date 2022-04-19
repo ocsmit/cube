@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
     cube.download
-    ~~~~~~~~~~~~~
+    ~~~~~~~~~~~~~~~~~~~
 
     Methods for downloading from NASA Earthdata and generating tifs, netcdf,
     and xarray data cubes.
@@ -13,30 +13,28 @@
 
 
 # Standard library imports
-import os
 import json
 from pathlib import Path
 from datetime import datetime
 import multiprocessing as mp
 from typing import Dict, Any, Union
+import time
 
 # Third party imports
-import numpy as np
 import pandas as pd
 import geopandas as gpd
-import matplotlib.pyplot as plt
 from osgeo import gdal
-import rasterio as rio
 import xarray as xr
 import rioxarray
 from shapely.geometry import mapping
-from pystac_client import Client, ItemSearch
+from pystac_client import Client
 
 try:
     from rich import print
 except ImportError:
     pass
 
+rioxarray.set_options(export_grid_mapping=False)
 # Local imports
 # ...
 
@@ -54,11 +52,11 @@ gdal.SetConfigOption("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", "TIF")
 
 #####################################
 # Consts
-PROCESSES = 4
+PROCESSES = 8
 
 CATALOGS = ["LPCLOUD"]
 
-HLSV2 = {
+HLSV3 = {
     "HLSL30.v2.0": {
         "B01": "aerosal",
         "B02": "blue",
@@ -288,29 +286,33 @@ def band_stack(
     Example
     -------
     """
+    s = time.time()
     bands = list(href_df.cname)
     band = xr.Variable("band", bands)
     sat = href_df["sat"].unique()[0]
     date = href_df["date"].unique()[0]
     print(f"{datetime.now()} {sat} {date}")
-    xr_bands = [
-        rioxarray.open_rasterio(f, masked=True).rio.clip(
-            geoms.geometry.apply(mapping), geoms.crs
+    try:
+        xr_arr = xr.concat(
+            [
+                rioxarray.open_rasterio(f).rio.clip(
+                    geoms.geometry.apply(mapping), geoms.crs, from_disk=True
+                )
+                for f in href_df.href
+            ],
+            dim=band,
         )
-        for f in href_df.href
-    ]
-    xr_arr = xr.concat(
-        xr_bands,
-        dim=band,
-    )
-    xr_arr.attrs["long_name"] = bands
-    if cache is True:
-        sat = href_df["sat"].unique()[0]
-        out_path = cache_dir / f"{sat}_{date}.tif"
-        xr_arr.rio.to_raster(out_path)
+        xr_arr.attrs["long_name"] = bands
+        if cache is True:
+            sat = href_df["sat"].unique()[0]
+            out_path = cache_dir / f"{sat}_{date}.tif"
+            xr_arr.rio.to_raster(out_path)
+            print(f"{(time.time() - s) / 60}")
+            return None
+        else:
+            return xr_arr
+    except:
         return None
-    else:
-        return xr_arr
 
 
 if __name__ == "__main__":
@@ -324,6 +326,6 @@ if __name__ == "__main__":
     item_collection = search.get_all_items()
     files = list(item_collection)
     hrefs = construct_file_df(files, HLSV2)
-    geom = gpd.read_file("./test_poly.geojson")
+    geom = gpd.read_file("../test/data/test_poly.geojson")
 
     test5 = generate_cube(hrefs, geom, cache_dir=Path("/SEAL/OwenSmith/hls_cube"))
