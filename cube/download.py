@@ -219,6 +219,34 @@ def generate_cube(
     cache=True,
     cache_dir: Union[Path, str] = Path("./"),
 ) -> xr.core.dataarray.DataArray:
+    """Create cube from ItemCollection
+
+    Parameters
+    ----------
+    hrefs : pandas.DataFrame
+        Pandas object which contains dates, collection, band, and href link
+        for each item in ItemCollection
+    geom : geopandas.GeoDataFrame
+        Geometry object to clip imagery to
+    processes : int
+        Number of CPU cores to utilize
+    cache : bool
+        Whether or not to cache all imgs as GeoTiffs
+    cache_dir : Path
+        Directory in which to output downloaded imagery if cache is true
+
+
+    Returns
+    -------
+    xarray.DataArray
+        xarray DataArray object with dimensions [dates, col, row, band]
+
+    Notes
+    -----
+
+    Example
+    -------
+    """
     dates = hrefs["date"].unique()
     time = xr.Variable("time", dates)
     pool = mp.Pool(processes)
@@ -235,8 +263,31 @@ def band_stack(
     cache=True,
     cache_dir: Union[Path, str] = Path("./"),
 ) -> xr.core.dataarray.DataArray:
-    # dates_ind = sorted_enumerate(dates)
-    # Standard xarray convention seems to name all time variables as time, even just dates
+    """Method to create single date data cube object
+
+    Parameters
+    ----------
+    href_df : pandas.DataFrame
+        Pandas object which contains dates, collection, band, and href link
+    geom : geopandas.GeoDataFrame
+        Geometry object to clip imagery to
+    cache : bool
+        Whether or not to cache all imgs as GeoTiffs
+    cache_dir : Path
+        Directory in which to output downloaded imagery if cache is true
+
+
+    Returns
+    -------
+    xarray.DataArray
+        xarray DataArray object with dimensions [date, col, row, band]
+
+    Notes
+    -----
+
+    Example
+    -------
+    """
     bands = list(href_df.cname)
     band = xr.Variable("band", bands)
     sat = href_df["sat"].unique()[0]
