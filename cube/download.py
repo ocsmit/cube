@@ -56,7 +56,7 @@ PROCESSES = 8
 
 CATALOGS = ["LPCLOUD"]
 
-HLSV3 = {
+HLSV2 = {
     "HLSL30.v2.0": {
         "B01": "aerosal",
         "B02": "blue",
@@ -82,59 +82,6 @@ HLSV3 = {
 }
 
 
-def inv_bandmap(band_map: Dict[str, str]) -> Dict[str, str]:
-    """Generate inverted band, common name dictonary
-
-    Parameters
-    ----------
-    band_map : dict
-        Band map for data product
-
-    Returns
-    -------
-    dict
-        Band map with inverted band name and common name key, value pair
-
-    Example
-    -------
-        bmap =  {"HLSS30.v2.0": {
-                "B01": "aerosal"}}
-        inv_bandmap(bmap)
-
-    """
-    inv_dict = {}
-    collections = list(band_map.keys())
-    for c in collections:
-        inv_dict[c] = {v: k for k, v in band_map.get(c).items()}
-    return inv_dict
-
-
-def generate_client(
-    catalog="LPCLOUD", url="https://cmr.earthdata.nasa.gov/stac/"
-) -> Client:
-    """Connect to nasa stac
-
-    Parameters
-    ----------
-    catalog : str
-        Catalog to ingest from
-    url : str
-        STAC URL
-
-    Returns
-    -------
-    Client
-        STAC endpoint
-
-    Notes
-    -----
-        Simply a wrapper for Client.open.
-        TODO: Add checking and indexing of NASA cmr catalogs
-
-    """
-    return Client.open(f"{url}/{catalog}")
-
-
 def get_links(asset, band_map: Dict[str, str]) -> pd.DataFrame:
     """Generate data frame of hrefs and meta data for a scene
 
@@ -145,7 +92,7 @@ def get_links(asset, band_map: Dict[str, str]) -> pd.DataFrame:
     band_map: Dict[str, str]
         Band map look up
 
-    Returns
+    Return
     -------
     pandas.DataFrame
         Pandas object which contains dates, collection, band, and href link

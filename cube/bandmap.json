@@ -1,0 +1,26 @@
+{
+    "HLSv2": {
+        "HLSL30.v2.0": {
+            "B01": "aerosal",
+            "B02": "blue",
+            "B03": "green",
+            "B04": "red",
+            "B05": "nir",
+            "B06": "swir1",
+            "B07": "swir2",
+            "B09": "cirrus",
+            "Fmask": "fmask"
+        },
+        "HLSS30.v2.0": {
+            "B01": "aerosal",
+            "B02": "blue",
+            "B03": "green",
+            "B04": "red",
+            "B08A": "nir",
+            "B10": "cirrus",
+            "B11": "swir1",
+            "B12": "swir2",
+            "Fmask": "fmask"
+        }
+    }
+}
