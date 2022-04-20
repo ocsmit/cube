@@ -14,10 +14,12 @@ from osgeo import gdal
 import xarray as xr
 import rioxarray
 from shapely.geometry import mapping
-from pystac_client import Client
 from pystac_client.exceptions import APIError
+from pystac_client import Client
 
 import warnings
+
+from cubed.client import CubeClient
 
 
 try:
@@ -26,7 +28,9 @@ except ImportError:
     pass
 
 
-def parse_bandmap(sat, path: Path = Path("./bandmap.json")):
+def parse_bandmap(
+    sat, path: Path = Path("./bandmap.json")
+) -> Union[Dict[str, str], None]:
     """TODO: Docstring for parse_bandmap.
 
     Parameters
@@ -83,7 +87,7 @@ def inv_bandmap(band_map: Dict[str, str]) -> Dict[str, str]:
 
 def generate_client(
     catalog="LPCLOUD", url="https://cmr.earthdata.nasa.gov/stac/"
-) -> Client:
+) -> Union[Client, None]:
     """Connect to nasa stac
 
     Parameters
@@ -105,7 +109,7 @@ def generate_client(
 
     """
     try:
-        return Client.open(f"{url}/{catalog}")
+        return CubeClient.open(f"{url}/{catalog}")
     except APIError:
         warnings.warn("STAC endpoint not found", RuntimeWarning)
         return None

@@ -28,6 +28,7 @@ import xarray as xr
 import rioxarray
 from shapely.geometry import mapping
 from pystac_client import Client
+from cubed.utils import parse_bandmap, generate_client
 
 try:
     from rich import print
@@ -55,31 +56,6 @@ gdal.SetConfigOption("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", "TIF")
 PROCESSES = 8
 
 CATALOGS = ["LPCLOUD"]
-
-HLSV2 = {
-    "HLSL30.v2.0": {
-        "B01": "aerosal",
-        "B02": "blue",
-        "B03": "green",
-        "B04": "red",
-        "B05": "nir",
-        "B06": "swir1",
-        "B07": "swir2",
-        "B09": "cirrus",
-        "Fmask": "fmask",
-    },
-    "HLSS30.v2.0": {
-        "B01": "aerosal",
-        "B02": "blue",
-        "B03": "green",
-        "B04": "red",
-        "B08A": "nir",
-        "B10": "cirrus",
-        "B11": "swir1",
-        "B12": "swir2",
-        "Fmask": "fmask",
-    },
-}
 
 
 def get_links(asset, band_map: Dict[str, str]) -> pd.DataFrame:
@@ -125,7 +101,7 @@ def get_links(asset, band_map: Dict[str, str]) -> pd.DataFrame:
 
 def construct_file_df(
     files: ItemCollectionDict, band_map: Dict[str, str]
-) -> pd.DataFrame:
+) -> Union[pd.DataFrame, None]:
     """Construct dataframe for entire query
 
     Parameters
@@ -206,8 +182,8 @@ def band_stack(
     href_df: pd.DataFrame,
     geoms: gpd.GeoDataFrame,
     cache=True,
-    cache_dir: Union[Path, str] = Path("./"),
-) -> xr.core.dataarray.DataArray:
+    cache_dir: Path = Path("./"),
+) -> Union[xr.Dataset, None]:
     """Method to create single date data cube object
 
     Parameters
@@ -263,16 +239,17 @@ def band_stack(
 
 
 if __name__ == "__main__":
+    band_map = parse_bandmap("HLSv2")
     catalog = generate_client()
     with open("../test/data/test_poly.geojson", "r") as fp:
         region_model = json.load(fp)
         geom = region_model["features"][0]["geometry"]
 
-    search = catalog.search(collections=list(HLSV2.keys()), intersects=geom)
+    search = catalog.search(collections=list(band_map.keys()), intersects=geom)
 
     item_collection = search.get_all_items()
     files = list(item_collection)
-    hrefs = construct_file_df(files, HLSV2)
+    hrefs = construct_file_df(files, band_map)
     geom = gpd.read_file("../test/data/test_poly.geojson")
 
     test5 = generate_cube(hrefs, geom, cache_dir=Path("/SEAL/OwenSmith/hls_cube"))
