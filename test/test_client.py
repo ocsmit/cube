@@ -1,5 +1,5 @@
 import pytest
-from cube.utils import generate_client
+from cubed.utils import generate_client
 
 correct_stac = {"catalog": "LPCLOUD", "url": "https://cmr.earthdata.nasa.gov/stac/"}
 wrong_stac = {"catalog": "wrong", "url": "https://cmr.earthdata.nasa.gov/stac/"}

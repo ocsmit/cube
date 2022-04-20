@@ -1,5 +1,5 @@
 import pytest
-from cube.utils import parse_bandmap
+from cubed.utils import parse_bandmap
 
 
 correct_band_map = {
