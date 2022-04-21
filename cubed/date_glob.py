@@ -19,7 +19,6 @@ class date_glob:
         if "%m" in self.__pattern:
             self.__replace_month()
         if "%d" in self.__pattern:
-            print(self.__pattern)
             self.__replace_day()
         return self.__pattern
 
