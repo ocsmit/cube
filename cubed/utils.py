@@ -14,12 +14,6 @@ from osgeo import gdal
 import xarray as xr
 import rioxarray
 from shapely.geometry import mapping
-from pystac_client.exceptions import APIError
-from pystac_client import Client
-
-import warnings
-
-from cubed.client import CubeClient
 
 
 try:
@@ -83,33 +77,3 @@ def inv_bandmap(band_map: Dict[str, str]) -> Dict[str, str]:
     for c in collections:
         inv_dict[c] = {v: k for k, v in band_map.get(c).items()}
     return inv_dict
-
-
-def generate_client(
-    catalog="LPCLOUD", url="https://cmr.earthdata.nasa.gov/stac/"
-) -> Union[Client, None]:
-    """Connect to nasa stac
-
-    Parameters
-    ----------
-    catalog : str
-        Catalog to ingest from
-    url : str
-        STAC URL
-
-    Returns
-    -------
-    Client
-        STAC endpoint
-
-    Notes
-    -----
-        Simply a wrapper for Client.open.
-        TODO: Add checking and indexing of NASA cmr catalogs
-
-    """
-    try:
-        return CubeClient.open(f"{url}/{catalog}")
-    except APIError:
-        warnings.warn("STAC endpoint not found", RuntimeWarning)
-        return None

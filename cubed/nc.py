@@ -20,30 +20,26 @@ import re
 import matplotlib.pyplot as plt
 import geopandas as gpd
 
+from cubed.date_glob import DateGlob
 
-def convert_to_xarr(
+
+def dir_to_xarr(
     file_dir: Path,
-    date_expression: str = "",
+    date_expression: str = "%Y-%m-%d",
     file_ext: str = "tif",
-    band_names: list = [
-        "blue",
-        "green",
-        "red",
-        "nir08",
-        "swir16",
-        "swir22",
-        "ndvi",
-        "qa",
-    ],
-) -> xr.core.dataarray.DataArray:
+) -> xr.DataArray:
 
-    files = list(file_dir.rglob(f"*.{file_ext}"))
-    dates = [datetime.strptime(i.stem.split(".")[-1], "%Y%m%d") for i in files]
-    dates_ind = sorted_enumerate(dates)
+    globexp = DateGlob(date_expression)
+    files = list(file_dir.rglob(f"*{globexp.pattern}*.{file_ext}"))
+    regexp = fr"{globexp.pattern}*|$"
+
+    dates = [
+        datetime.strptime(re.search(regexp, str(f)).group(), "%Y-%m-%d") for f in files
+    ]
     # Standard xarray convention seems to name all time variables as time, even just dates
     time = xr.Variable("time", dates)
     xr_arr = xr.concat(
-        [rioxarray.open_rasterio(f, masked=True) for f in files], dim=time
+        [rioxarray.open_rasterio(f, chunks=True) for f in files], dim=time
     )
-    xr_arr = xr_arr.assign_coords(band=band_names)
+    # xr_arr = xr_arr.assign_coords(band=band_names)
     return xr_arr.sortby("time")

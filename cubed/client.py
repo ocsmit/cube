@@ -5,6 +5,11 @@ from typing import Union, Any, Dict, Tuple
 from pathlib import Path
 import json
 
+from pystac_client.exceptions import APIError
+from pystac_client import Client
+
+import warnings
+
 # Type
 SingleGeom = Dict[str, Union[str, Tuple]]
 
@@ -25,7 +30,7 @@ class CubeClient(Client):
             kwargs["intersects"] = self.__check_intersects(geom)
         return super(CubeClient, self).search(**kwargs)
 
-    def __check_intersects(self, geom) -> SingleGeom:
+    def __check_intersects(self, geom) -> Union[SingleGeom, None]:
         # Check if geom is geopandas dataframe object
         if isinstance(geom, gpd.GeoDataFrame):
             geo_json = geom.__geo_interface__
@@ -38,3 +43,33 @@ class CubeClient(Client):
 
     def __get_subgeom(self, geom_json) -> SingleGeom:
         return geom_json["features"][0]["geometry"]
+
+
+def generate_client(
+    catalog="LPCLOUD", url="https://cmr.earthdata.nasa.gov/stac/"
+) -> Union[Client, None]:
+    """Connect to nasa stac
+
+    Parameters
+    ----------
+    catalog : str
+        Catalog to ingest from
+    url : str
+        STAC URL
+
+    Returns
+    -------
+    Client
+        STAC endpoint
+
+    Notes
+    -----
+        Simply a wrapper for Client.open.
+        TODO: Add checking and indexing of NASA cmr catalogs
+
+    """
+    try:
+        return CubeClient.open(f"{url}/{catalog}")
+    except APIError:
+        warnings.warn("STAC endpoint not found", RuntimeWarning)
+        return None

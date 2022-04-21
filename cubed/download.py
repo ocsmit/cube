@@ -27,8 +27,8 @@ from osgeo import gdal
 import xarray as xr
 import rioxarray
 from shapely.geometry import mapping
-from pystac_client import Client
-from cubed.utils import parse_bandmap, generate_client
+from cubed.utils import parse_bandmap
+from cubed.client import generate_client
 
 try:
     from rich import print
@@ -170,11 +170,14 @@ def generate_cube(
     """
     dates = hrefs["date"].unique()
     time = xr.Variable("time", dates)
-    pool = mp.Pool(processes)
-    imgs = pool.starmap(
-        band_stack,
-        [(hrefs.loc[hrefs["date"] == d], geom, cache, cache_dir) for d in dates],
-    )
+    # pool = mp.Pool(processes)
+    # imgs = pool.starmap(
+    #    band_stack,
+    #    [(hrefs.loc[hrefs["date"] == d], geom, cache, cache_dir) for d in dates],
+    # )
+
+    imgs = [band_stack(hrefs.loc[hrefs["date"] == d], geom, False) for d in dates]
+
     return imgs
 
 
@@ -215,27 +218,20 @@ def band_stack(
     sat = href_df["sat"].unique()[0]
     date = href_df["date"].unique()[0]
     print(f"{datetime.now()} {sat} {date}")
-    try:
-        xr_arr = xr.concat(
-            [
-                rioxarray.open_rasterio(f).rio.clip(
-                    geoms.geometry.apply(mapping), geoms.crs, from_disk=True
-                )
-                for f in href_df.href
-            ],
-            dim=band,
-        )
-        xr_arr.attrs["long_name"] = bands
-        if cache is True:
-            sat = href_df["sat"].unique()[0]
-            out_path = cache_dir / f"{sat}_{date}.tif"
-            xr_arr.rio.to_raster(out_path)
-            print(f"{(time.time() - s) / 60}")
-            return None
-        else:
-            return xr_arr
-    except:
-        return None
+    xr_arr = xr.concat(
+        [
+            rioxarray.open_rasterio(f, chunks=True,).rio.clip(
+                geoms.geometry.apply(mapping),
+                geoms.crs,
+                from_disk=True,
+            )
+            for f in href_df.href
+        ],
+        dim=band,
+    )
+    xr_arr.attrs["long_name"] = bands
+    sat = href_df["sat"].unique()[0]
+    return xr_arr
 
 
 if __name__ == "__main__":
