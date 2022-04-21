@@ -3,7 +3,7 @@ import datetime
 
 
 # ISO 8601
-class date_glob:
+class DateGlob:
     def __init__(self, datestr) -> None:
         self.datestr = datestr
         self.__Y = "[0-9]" * 4
