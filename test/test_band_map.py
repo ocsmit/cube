@@ -28,14 +28,15 @@ correct_band_map = {
         },
     }
 }
+band_map_path = "./cubed/bandmap.json"
 
 
 def test_correct_band_map():
     collection = "HLSv2"
-    band_map = parse_bandmap(collection, "./cube/bandmap.json")
+    band_map = parse_bandmap(collection, band_map_path)
     assert band_map == correct_band_map.get(collection)
 
 
 def test_incorrect_band_map():
-    band_map = parse_bandmap("wrong", "./cube/bandmap.json")
+    band_map = parse_bandmap("wrong", band_map_path)
     assert band_map == None
