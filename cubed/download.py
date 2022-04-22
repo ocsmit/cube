@@ -176,7 +176,10 @@ def generate_cube(
     #    [(hrefs.loc[hrefs["date"] == d], geom, cache, cache_dir) for d in dates],
     # )
 
-    imgs = [band_stack(hrefs.loc[hrefs["date"] == d], geom, False) for d in dates]
+    imgs = xr.concat(
+        [band_stack(hrefs.loc[hrefs["date"] == d], geom, False) for d in dates],
+        dim=time,
+    )
 
     return imgs
 
@@ -186,7 +189,7 @@ def band_stack(
     geoms: gpd.GeoDataFrame,
     cache=True,
     cache_dir: Path = Path("./"),
-) -> Union[xr.Dataset, None]:
+) -> xr.Dataset:
     """Method to create single date data cube object
 
     Parameters
@@ -212,7 +215,6 @@ def band_stack(
     Example
     -------
     """
-    s = time.time()
     bands = list(href_df.cname)
     band = xr.Variable("band", bands)
     sat = href_df["sat"].unique()[0]
@@ -220,7 +222,7 @@ def band_stack(
     print(f"{datetime.now()} {sat} {date}")
     xr_arr = xr.concat(
         [
-            rioxarray.open_rasterio(f, chunks=True,).rio.clip(
+            rioxarray.open_rasterio(f, lock=False, chunks=(1, -1, "auto")).rio.clip(
                 geoms.geometry.apply(mapping),
                 geoms.crs,
                 from_disk=True,
@@ -230,22 +232,6 @@ def band_stack(
         dim=band,
     )
     xr_arr.attrs["long_name"] = bands
+    print(xr_arr.shape)
     sat = href_df["sat"].unique()[0]
     return xr_arr
-
-
-if __name__ == "__main__":
-    band_map = parse_bandmap("HLSv2")
-    catalog = generate_client()
-    with open("../test/data/test_poly.geojson", "r") as fp:
-        region_model = json.load(fp)
-        geom = region_model["features"][0]["geometry"]
-
-    search = catalog.search(collections=list(band_map.keys()), intersects=geom)
-
-    item_collection = search.get_all_items()
-    files = list(item_collection)
-    hrefs = construct_file_df(files, band_map)
-    geom = gpd.read_file("../test/data/test_poly.geojson")
-
-    test5 = generate_cube(hrefs, geom, cache_dir=Path("/SEAL/OwenSmith/hls_cube"))
