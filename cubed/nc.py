@@ -31,10 +31,16 @@ def dir_to_xarr(
 
     globexp = DateGlob(date_expression)
     files = list(file_dir.rglob(f"*{globexp.pattern}*.{file_ext}"))
+    if len(files) == 0:
+        raise FileNotFoundError(
+            f"No files found in '{str(file_dir)}' with date '{date_expression}'"
+        )
+
     regexp = fr"{globexp.pattern}*|$"
 
     dates = [
-        datetime.strptime(re.search(regexp, str(f)).group(), "%Y-%m-%d") for f in files
+        datetime.strptime(re.search(regexp, str(f)).group(), date_expression)
+        for f in files
     ]
     # Standard xarray convention seems to name all time variables as time, even just dates
     time = xr.Variable("time", dates)
