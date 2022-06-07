@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cd ..
-pytest  -W ignore::DeprecationWarning
+cd "$(.. "$0")"
+pytest  -W ignore::DeprecationWarning -vv
 
