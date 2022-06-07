@@ -20,7 +20,7 @@ correct_band_map = {
             "B02": "blue",
             "B03": "green",
             "B04": "red",
-            "B08A": "nir",
+            "B8A": "nir",
             "B10": "cirrus",
             "B11": "swir1",
             "B12": "swir2",
